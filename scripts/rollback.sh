@@ -20,7 +20,17 @@ ssh -o StrictHostKeyChecking=no -i $SSH_KEY_PATH ec2-user@$EC2_HOST << EOF
   docker stop myapp || true
   docker rm myapp || true
 
-  docker run -d --name myapp -p 80:80 $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$PREVIOUS_VERSION
+ echo "Creating log directory..."
+ sudo mkdir -p /var/log/myapp
+ sudo chown ec2-user:ec2-user /var/log/myapp
+
+ echo "Starting new container..."
+ docker run -d --name myapp \
+  -p 80:80 \
+  -v /var/log/myapp:/logs \
+  $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPO:$VERSION
+
+
 EOF
 
 echo "Rollback to version $PREVIOUS_VERSION complete."
