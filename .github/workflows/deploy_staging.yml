@@ -52,4 +52,4 @@ jobs:
           chmod 600 cicd_key
 
           ssh -o StrictHostKeyChecking=no -i cicd_key ec2-user@${{ secrets.EC2_STAGING_HOST }} \
-            "echo '${{ env.TAG }}' > last_version_staging.txt && ./scripts/deploy_staging.sh"
+            "cd devops-deployment-automation && echo '${{ env.TAG }}' > last_version_staging.txt && ./scripts/deploy_staging.sh"
