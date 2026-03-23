@@ -45,7 +45,7 @@ jobs:
 
       - name: Copy version file to staging EC2
         run: |
-          echo "${{ secrets.STAGING_SSH_KEY }}" > cicd_key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > cicd_key
           chmod 600 cicd_key
           scp -o StrictHostKeyChecking=no -i cicd_key last_version_staging.txt ec2-user@${{ secrets.EC2_STAGING_HOST }}:/home/ec2-user/devops-deployment-automation/
 

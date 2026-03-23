@@ -39,7 +39,7 @@ jobs:
 
       - name: Copy version file to production EC2
         run: |
-          echo "${{ secrets.PRODUCTION_SSH_KEY }}" > cicd_key
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > cicd_key
           chmod 600 cicd_key
           scp -o StrictHostKeyChecking=no -i cicd_key last_version_production.txt ec2-user@${{ secrets.EC2_PRODUCTION_HOST }}:/home/ec2-user/devops-deployment-automation/
 
