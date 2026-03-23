@@ -75,7 +75,16 @@ jobs:
             \"attachments\": [
               {
                 \"color\": \"good\",
-                \"text\": \"✅ *Staging Deployment Successful*\nEnvironment: *STAGING*\"
+                \"text\": \"✅ *Staging Deployment Successful*\nEnvironment: *STAGING*\",
+                \"actions\": [
+                  {
+                    \"type\": \"button\",
+                    \"text\": \"Promote to Production\",
+                    \"style\": \"primary\",
+                    \"url\": \"https://d7kjusja7c.execute-api.eu-north-1.amazonaws.com/slack\",
+                    \"value\": \"promote_to_production\"
+                  }
+                ]
               }
             ]
           }" \
