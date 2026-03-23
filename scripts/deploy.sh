@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 
-VERSION=$(cat last_version.txt)
-PREVIOUS_VERSION=$(cat previous_version.txt 2>/dev/null || echo "none")
+VERSION=$(cat last_version_production.txt)
+PREVIOUS_VERSION=$(cat previous_version_production.txt 2>/dev/null || echo "none")
 
 AWS_ACCOUNT_ID="787124622426"
-AWS_REGION="us-east-1"
+AWS_REGION="eu-north-1"
 ECR_REPO="myapp"
 EC2_HOST="16.171.41.129"
 SSH_KEY_PATH="~/.ssh/groundnut.pem"
@@ -72,4 +72,4 @@ docker run -d --name myapp \
 EOF
 
 echo "Updating version history..."
-echo $VERSION > previous_version.txt
+echo $VERSION > previous_version_production.txt

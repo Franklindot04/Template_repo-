@@ -1,10 +1,10 @@
-name: Promote Staging to Production
+name: Deploy to Production
 
 on:
   workflow_dispatch:
 
 jobs:
-  promote:
+  deploy-production:
     runs-on: ubuntu-latest
 
     steps:
@@ -18,10 +18,18 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
-      - name: Read last staging version
+      - name: Generate version tag
+        run: echo "TAG=$(date +'%Y%m%d%H%M')" >> $GITHUB_ENV
+
+      - name: Build Docker image
         run: |
-          TAG=$(cat last_version_staging.txt)
-          echo "TAG=$TAG" >> $GITHUB_ENV
+          docker build -f app/Dockerfile -t myapp:${{ env.TAG }} app
+
+      - name: Tag for ECR
+        run: |
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          docker tag "myapp:${{ env.TAG }}" \
+            "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/myapp:${{ env.TAG }}"
 
       - name: Login to ECR
         run: |
@@ -30,24 +38,13 @@ jobs:
             | docker login --username AWS --password-stdin \
               "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com"
 
-      - name: Pull staging image and retag for production
-        run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
-          docker pull \
-            "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/myapp-staging:${{ env.TAG }}"
-
-          docker tag \
-            "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/myapp-staging:${{ env.TAG }}" \
-            "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/myapp:${{ env.TAG }}"
-
-      - name: Push production image
+      - name: Push to ECR
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           docker push \
             "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/myapp:${{ env.TAG }}"
 
-      - name: Copy version file to production EC2
+      - name: Copy version file to EC2
         run: |
           echo "${{ env.TAG }}" > last_version_production.txt
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > cicd_key
