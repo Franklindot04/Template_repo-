@@ -2,6 +2,9 @@ name: Promote Staging to Production
 
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [promote_to_production]
+  
 
 jobs:
   promote:
