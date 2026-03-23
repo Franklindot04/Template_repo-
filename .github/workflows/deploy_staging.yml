@@ -6,45 +6,54 @@ on:
       - main
 
 jobs:
-  deploy:
+  deploy-staging:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up AWS credentials
+      - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: eu-north-1
 
       - name: Generate version tag
         run: echo "TAG=$(date +'%Y%m%d%H%M')" >> $GITHUB_ENV
 
       - name: Build Docker image
         run: |
-          docker build -f app/Dockerfile -t myapp:${{ env.TAG }} app
+          docker build -f app/Dockerfile -t myapp-staging:${{ env.TAG }} app
 
       - name: Tag for ECR
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          docker tag "myapp:${{ env.TAG }}" \
-            "$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/myapp-staging:${{ env.TAG }}"
+          docker tag "myapp-staging:${{ env.TAG }}" \
+            "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/myapp-staging:${{ env.TAG }}"
 
       - name: Login to ECR
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          aws ecr get-login-password --region ${{ secrets.AWS_REGION }} \
+          aws ecr get-login-password --region eu-north-1 \
             | docker login --username AWS --password-stdin \
-              "$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com"
+              "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com"
 
       - name: Push to ECR
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           docker push \
-            "$ACCOUNT_ID.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/myapp-staging:${{ env.TAG }}"
+            "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/myapp-staging:${{ env.TAG }}"
+
+      - name: Copy version file to staging EC2
+        run: |
+          echo "${{ env.TAG }}" > last_version_staging.txt
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > cicd_key
+          chmod 600 cicd_key
+
+          scp -o StrictHostKeyChecking=no -i cicd_key last_version_staging.txt \
+            ec2-user@${{ secrets.EC2_STAGING_HOST }}:/home/ec2-user/devops-deployment-automation/
 
       - name: SSH into staging and deploy
         run: |
@@ -52,4 +61,4 @@ jobs:
           chmod 600 cicd_key
 
           ssh -o StrictHostKeyChecking=no -i cicd_key ec2-user@${{ secrets.EC2_STAGING_HOST }} \
-            "cd devops-deployment-automation && echo '${{ env.TAG }}' > last_version_staging.txt && ./scripts/deploy_staging.sh"
+            "cd devops-deployment-automation && ./scripts/deploy_staging.sh"
