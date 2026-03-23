@@ -32,20 +32,46 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
+      # Read staging version
       - name: Read staging version
+        id: version
         run: |
           VERSION=$(cat last_version_staging.txt)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo $VERSION > last_version_production.txt
 
+      # ⭐ Retag staging image → production image
+      - name: Retag and push production image
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+
+          aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com
+
+          # Pull staging image
+          docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com/myapp-staging:$VERSION
+
+          # Retag as production
+          docker tag \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com/myapp-staging:$VERSION \
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com/myapp-production:$VERSION
+
+          # Push production image
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com/myapp-production:$VERSION
+
+      # Copy version file to production EC2
       - name: Copy version file to production EC2
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > cicd_key
           chmod 600 cicd_key
-          scp -o StrictHostKeyChecking=no -i cicd_key last_version_production.txt ec2-user@${{ secrets.EC2_PRODUCTION_HOST }}:/home/ec2-user/devops-deployment-automation/
+          scp -o StrictHostKeyChecking=no -i cicd_key last_version_production.txt \
+            ec2-user@${{ secrets.EC2_PRODUCTION_HOST }}:/home/ec2-user/devops-deployment-automation/
 
+      # Deploy on production EC2
       - name: Deploy on production EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i cicd_key ec2-user@${{ secrets.EC2_PRODUCTION_HOST }} "cd devops-deployment-automation/scripts && ./deploy.sh"
+          ssh -o StrictHostKeyChecking=no -i cicd_key ec2-user@${{ secrets.EC2_PRODUCTION_HOST }} \
+            "cd devops-deployment-automation/scripts && ./deploy.sh"
 
       # Notify Slack: Promote success
       - name: Slack - Promote Success
@@ -71,8 +97,4 @@ jobs:
             \"attachments\": [
               {
                 \"color\": \"danger\",
-                \"text\": \"⚠️ *Production Deployment Failed*\n🔄 Rollback Triggered Automatically\nEnvironment: *PRODUCTION*\"
-              }
-            ]
-          }" \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+                \"text\": \"⚠️ *Production Deployment Failed*\n🔄 Rollback Triggered Automatically
