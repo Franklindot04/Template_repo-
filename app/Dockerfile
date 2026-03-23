@@ -8,6 +8,8 @@ COPY app.py .
 
 RUN pip install fastapi uvicorn
 
+RUN mkdir -p /logs
+
 EXPOSE 80
 
 CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "80"]
