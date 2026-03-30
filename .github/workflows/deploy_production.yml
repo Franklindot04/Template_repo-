@@ -11,14 +11,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # -----------------------------
-      # SLACK: Production Deploy Started
-      # -----------------------------
       - name: Slack - Production Deploy Started
         run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << EOF
-          {
+          echo '{
             "blocks": [
               {
                 "type": "section",
@@ -28,8 +23,7 @@ jobs:
                 }
               }
             ]
-          }
-EOF
+          }' | curl -X POST -H "Content-type: application/json" --data @- ${{ secrets.SLACK_WEBHOOK_URL }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -53,14 +47,14 @@ EOF
 
       - name: Login to ECR
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ACCOUNT_ID=$(aws sts.get-caller-identity --query Account --output text)
           aws ecr get-login-password --region eu-north-1 \
             | docker login --username AWS --password-stdin \
               "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com"
 
       - name: Push to ECR
         run: |
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ACCOUNT_ID=$(aws sts.get-caller-identity --query Account --output text)
           docker push \
             "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/myapp-production:${{ env.TAG }}"
 
@@ -82,51 +76,37 @@ EOF
           ssh -o StrictHostKeyChecking=no -i cicd_key ec2-user@${{ secrets.EC2_PRODUCTION_HOST }} \
             "cd devops-deployment-automation && ./scripts/deploy_production.sh"
 
-      # -----------------------------
-      # SLACK: Production Deploy Successful
-      # -----------------------------
       - name: Slack - Production Deploy Successful
         if: success()
         run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << EOF
-          {
-            "blocks": [
+          echo "{
+            \"blocks\": [
               {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "✅ *Production Deployment Successful*\nEnvironment: *PRODUCTION*\nVersion: ${{ env.TAG }}"
+                \"type\": \"section\",
+                \"text\": {
+                  \"type\": \"mrkdwn\",
+                  \"text\": \"✅ *Production Deployment Successful*\\nEnvironment: *PRODUCTION*\\nVersion: ${{ env.TAG }}\"
                 }
               },
               {
-                "type": "actions",
-                "elements": [
+                \"type\": \"actions\",
+                \"elements\": [
                   {
-                    "type": "button",
-                    "text": {
-                      "type": "plain_text",
-                      "text": "Rollback Production"
-                    },
-                    "style": "danger",
-                    "value": "rollback_production",
-                    "action_id": "rollback_production"
+                    \"type\": \"button\",
+                    \"text\": { \"type\": \"plain_text\", \"text\": \"Rollback Production\" },
+                    \"style\": \"danger\",
+                    \"value\": \"rollback_production\",
+                    \"action_id\": \"rollback_production\"
                   }
                 ]
               }
             ]
-          }
-EOF
+          }" | curl -X POST -H "Content-type: application/json" --data @- ${{ secrets.SLACK_WEBHOOK_URL }}
 
-      # -----------------------------
-      # SLACK: Production Deploy Failed
-      # -----------------------------
       - name: Slack - Production Deploy Failed
         if: failure()
         run: |
-          curl -X POST -H 'Content-type: application/json' \
-          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << EOF
-          {
+          echo '{
             "blocks": [
               {
                 "type": "section",
@@ -136,5 +116,4 @@ EOF
                 }
               }
             ]
-          }
-EOF
+          }' | curl -X POST -H "Content-type: application/json" --data @- ${{ secrets.SLACK_WEBHOOK_URL }}
