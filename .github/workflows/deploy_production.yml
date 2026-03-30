@@ -17,7 +17,7 @@ jobs:
       - name: Slack - Production Deploy Started
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << 'EOF'
+          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << EOF
           {
             "blocks": [
               {
@@ -29,7 +29,7 @@ jobs:
               }
             ]
           }
-          EOF
+EOF
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -96,7 +96,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "✅ *Production Deployment Successful*\nEnvironment: *PRODUCTION*\nVersion: ${env.TAG}"
+                  "text": "✅ *Production Deployment Successful*\nEnvironment: *PRODUCTION*\nVersion: ${{ env.TAG }}"
                 }
               },
               {
@@ -116,7 +116,7 @@ jobs:
               }
             ]
           }
-          EOF
+EOF
 
       # -----------------------------
       # SLACK: Production Deploy Failed
@@ -125,7 +125,7 @@ jobs:
         if: failure()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << 'EOF'
+          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << EOF
           {
             "blocks": [
               {
@@ -137,4 +137,4 @@ jobs:
               }
             ]
           }
-          EOF
+EOF
