@@ -51,7 +51,7 @@ jobs:
           chmod 600 cicd_key
 
           scp -o StrictHostKeyChecking=no -i cicd_key last_version_production.txt \
-            ec2-user@${{ secrets.EC2_PRODUCTION_HOST }}:/home/ec2-user/devops-deployment-automation/
+            ec2-user@${{ secrets.EC2_PRODUCTION_HOST }}:/home/ec2-user/devops-deployment-automation/scripts/
 
       - name: SSH into production and deploy
         run: |
@@ -59,4 +59,4 @@ jobs:
           chmod 600 cicd_key
 
           ssh -o StrictHostKeyChecking=no -i cicd_key ec2-user@${{ secrets.EC2_PRODUCTION_HOST }} \
-            "cd devops-deployment-automation && ./scripts/deploy.sh"
+            "cd devops-deployment-automation && ./scripts/deploy_production.sh"
