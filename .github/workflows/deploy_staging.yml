@@ -81,7 +81,7 @@ jobs:
                     \"type\": \"button\",
                     \"text\": \"Promote to Production\",
                     \"style\": \"primary\",
-                    \"url\": \"https://d7kjusja7c.execute-api.eu-north-1.amazonaws.com/slack\",
+                    \"url\": \"https://fnqfa4zo91.execute-api.eu-north-1.amazonaws.com/slack\",
                     \"value\": \"promote_to_production\"
                   }
                 ]
