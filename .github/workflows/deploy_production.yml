@@ -47,14 +47,14 @@ jobs:
 
       - name: Login to ECR
         run: |
-          ACCOUNT_ID=$(aws sts.get-caller-identity --query Account --output text)
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           aws ecr get-login-password --region eu-north-1 \
             | docker login --username AWS --password-stdin \
               "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com"
 
       - name: Push to ECR
         run: |
-          ACCOUNT_ID=$(aws sts.get-caller-identity --query Account --output text)
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           docker push \
             "$ACCOUNT_ID.dkr.ecr.eu-north-1.amazonaws.com/myapp-production:${{ env.TAG }}"
 
