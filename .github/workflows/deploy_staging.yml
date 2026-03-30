@@ -20,10 +20,13 @@ jobs:
           curl -X POST -H 'Content-type: application/json' \
           --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << 'EOF'
           {
-            "attachments": [
+            "blocks": [
               {
-                "color": "#439FE0",
-                "text": "🚀 *Staging Deployment Started*\nRepository: devops-deployment-automation\nEnvironment: *STAGING*"
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "🚀 *Staging Deployment Started*\nRepository: devops-deployment-automation\nEnvironment: *STAGING*"
+                }
               }
             ]
           }
@@ -71,16 +74,25 @@ jobs:
           curl -X POST -H 'Content-type: application/json' \
           --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << 'EOF'
           {
-            "attachments": [
+            "blocks": [
               {
-                "color": "good",
-                "text": "✅ *Staging Deployment Successful*\nEnvironment: *STAGING*",
-                "actions": [
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "✅ *Staging Deployment Successful*\nEnvironment: *STAGING*"
+                }
+              },
+              {
+                "type": "actions",
+                "elements": [
                   {
                     "type": "button",
-                    "text": "Promote to Production",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "Promote to Production"
+                    },
                     "style": "primary",
-                    "value": "promote_to_production"
+                    "value": "promote_to_production",
                     "action_id": "promote_to_production"
                   }
                 ]
@@ -95,10 +107,13 @@ jobs:
           curl -X POST -H 'Content-type: application/json' \
           --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << 'EOF'
           {
-            "attachments": [
+            "blocks": [
               {
-                "color": "danger",
-                "text": "❌ *Staging Deployment Failed*\nEnvironment: *STAGING*"
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "❌ *Staging Deployment Failed*\nEnvironment: *STAGING*"
+                }
               }
             ]
           }
