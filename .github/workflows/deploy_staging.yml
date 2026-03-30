@@ -59,7 +59,7 @@ jobs:
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > cicd_key
           chmod 600 cicd_key
-          scp -o StrictHostKeyChecking=no -i cicd_key last_version_staging.txt ec2-user@${{ secrets.EC2_STAGING_HOST }}:/home/ec2-user/devops-deployment-automation/
+          scp -o StrictHostKeyChecking=no -i cicd_key last_version_staging.txt ec2-user@${{ secrets.EC2_STAGING_HOST }}:/home/ec2-user/devops-deployment-automation/scripts/
 
       - name: Deploy on staging EC2
         run: |
