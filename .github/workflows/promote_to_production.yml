@@ -4,7 +4,6 @@ on:
   workflow_dispatch:
   repository_dispatch:
     types: [promote_to_production]
-  
 
 jobs:
   promote:
@@ -14,19 +13,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Notify Slack: Promote started
       - name: Slack - Promote Started
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data "{
-            \"attachments\": [
+          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << 'EOF'
+          {
+            "attachments": [
               {
-                \"color\": \"#439FE0\",
-                \"text\": \"🚀 *Promote to Production Started*\nEnvironment: *PRODUCTION*\"
+                "color": "#439FE0",
+                "text": "🚀 *Promote to Production Started*\nEnvironment: *PRODUCTION*"
               }
             ]
-          }" \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          }
+          EOF
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -35,7 +34,6 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-north-1
 
-      # Read staging version
       - name: Read staging version
         id: version
         run: |
@@ -43,7 +41,6 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo $VERSION > last_version_production.txt
 
-      # ⭐ Retag staging image → production image
       - name: Retag and push production image
         run: |
           VERSION=${{ steps.version.outputs.version }}
@@ -51,53 +48,52 @@ jobs:
           aws ecr get-login-password --region eu-north-1 | docker login --username AWS --password-stdin \
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com
 
-          # Pull staging image
           docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com/myapp-staging:$VERSION
 
-          # Retag as production
           docker tag \
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com/myapp-staging:$VERSION \
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com/myapp-production:$VERSION
 
-          # Push production image
           docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.eu-north-1.amazonaws.com/myapp-production:$VERSION
 
-      # Copy version file to production EC2
       - name: Copy version file to production EC2
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > cicd_key
           chmod 600 cicd_key
           scp -o StrictHostKeyChecking=no -i cicd_key last_version_production.txt \
-            ec2-user@${{ secrets.EC2_PRODUCTION_HOST }}:/home/ec2-user/devops-deployment-automation/
+            ec2-user@${{ secrets.EC2_PRODUCTION_HOST }}:/home/ec2-user/devops-deployment-automation/scripts/
 
-      # Deploy on production EC2
       - name: Deploy on production EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i cicd_key ec2-user@${{ secrets.EC2_PRODUCTION_HOST }} \
-            "cd devops-deployment-automation/scripts && ./deploy.sh"
+            "cd devops-deployment-automation/scripts && ./deploy_production.sh"
 
-      # Notify Slack: Promote success
       - name: Slack - Promote Success
         if: success()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data "{
-            \"attachments\": [
+          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << 'EOF'
+          {
+            "attachments": [
               {
-                \"color\": \"good\",
-                \"text\": \"✅ *Production Deployment Successful*\nEnvironment: *PRODUCTION*\"
+                "color": "good",
+                "text": "✅ *Production Deployment Successful*\nEnvironment: *PRODUCTION*"
               }
             ]
-          }" \
-          ${{ secrets.SLACK_WEBHOOK_URL }}
+          }
+          EOF
 
-      # Notify Slack: Promote failed (rollback triggered)
       - name: Slack - Promote Failed / Rollback Triggered
         if: failure()
         run: |
           curl -X POST -H 'Content-type: application/json' \
-          --data "{
-            \"attachments\": [
+          --data @- ${{ secrets.SLACK_WEBHOOK_URL }} << 'EOF'
+          {
+            "attachments": [
               {
-                \"color\": \"danger\",
-                \"text\": \"⚠️ *Production Deployment Failed*\n🔄 Rollback Triggered Automatically
+                "color": "danger",
+                "text": "⚠️ *Production Deployment Failed*\n🔄 Rollback Triggered Automatically"
+              }
+            ]
+          }
+          EOF
